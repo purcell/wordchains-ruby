@@ -2,20 +2,28 @@
 
 require 'set'
 
+def shortest_chain(word1, word2, word_list)
+  dictionary = Dictionary.new(word_list)
+  from_start, = searches = [Search.new(word1, dictionary), Search.new(word2, dictionary)]
+  until searches.first.exhausted?
+    if found = searches.first.extend_towards(searches.last)
+      return searches.first == from_start ? found : found.reverse
+    end
+    searches.rotate!
+  end
+  nil
+end
+
 class Dictionary
   def initialize(words)
     @words_to_masks = {}
     @masks_to_words = {}
-    words.each do |word|  # TODO: uniq(&:downcase), for Gold/gold, which are both in dict
+    words.each do |word|
       @words_to_masks[word] = word_masks = masks(word)
       word_masks.each do |mask|
         (@masks_to_words[mask] ||= []) << word
       end
     end
-  end
-
-  def include?(word)
-    @words_to_masks.has_key?(word)
   end
 
   def neighbours(word)
@@ -34,41 +42,32 @@ class Dictionary
   end
 end
 
-def shortest_chain(word1, word2, word_list)
-  dictionary = Dictionary.new(word_list)
-
-  chains_from_start = Chains.new(word1, dictionary)
-  while chains_from_start.any?
-    if found = chains_from_start.ending_on(word2)
-      return found
-    end
-    chains_from_start.extend!
-  end
-  nil
-end
-
-class Chains
+class Search
   def initialize(from_word, dictionary)
     @dictionary = dictionary
     @chain_tips = { from_word => [from_word] }
     @seen = Set.new([from_word])
   end
 
-  def any?
-    @chain_tips.any?
+  def exhausted?
+    @chain_tips.empty?
   end
 
-  def extend!
-    old_chain_tips = @chain_tips
-    @chain_tips = {}
-    old_chain_tips.each do |tip, chain|
+  def extend_towards(other_chain)
+    new_chain_tips = {}
+    @chain_tips.each do |tip, chain|
       @dictionary.neighbours(tip).each do |neighbour|
         unless @seen.include?(neighbour)
-          @chain_tips[neighbour] = chain.dup.push(neighbour)
-          @seen << neighbour
+          if matching = other_chain.ending_on(neighbour)
+            return chain + matching.reverse
+          end
+          new_chain_tips[neighbour] = chain.dup.push(neighbour)
         end
       end
     end
+    @seen.merge(new_chain_tips.keys)
+    @chain_tips = new_chain_tips
+    nil
   end
 
   def ending_on(word)
