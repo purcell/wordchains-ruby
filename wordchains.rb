@@ -119,4 +119,4 @@ end
 # ruby -> code (moderate)
 # house -> shout (hard)
 # turkey -> carrot (harder)
-# house -> house (no solution?)
+# ravine -> turkey (hardest)
