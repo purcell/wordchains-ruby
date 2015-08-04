@@ -76,9 +76,6 @@ class Chains
   end
 end
 
-
-
-
 def main
   unless ARGV.size == 3
     abort "usage: #{$0} word1 word2 dict"
@@ -93,12 +90,34 @@ def main
   words = File.read(dictfile).split("\n").select { |w| w.size == word1.size }
   puts "#{words.size} words of length #{word1.size} in dictionary"
   if found = shortest_chain(word1, word2, words)
+    puts "Found solution:"
     puts found.join(" -> ")
   else
     abort "No solution found"
   end
 end
 
+def profile(meth)
+  require 'ruby-prof'
+  result = RubyProf.profile do
+    send(meth)
+  end
+  printer = RubyProf::GraphHtmlPrinter.new(result)
+  fname = "/tmp/profile.html"
+  File.open(fname, 'w') do |f|
+    printer.print(f)
+  end
+  system("open '#{fname}'")
+end
 
+if __FILE__ == $0
+  ENV.key?('PROFILE') ? profile(:main) : main
+end
 
-main if __FILE__ == $0
+# Test cases
+
+# cat -> dog (easy)
+# ruby -> code (moderate)
+# house -> shout (hard)
+# turkey -> carrot (harder)
+# house -> house (no solution?)
